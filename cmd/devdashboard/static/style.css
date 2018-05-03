@@ -1,0 +1,209 @@
+body {
+	margin: 0;
+	font-family: Helvetica, Arial, sans-serif;
+	font-size: 16px;
+}
+pre,
+code {
+	font-family: Menlo, monospace;
+	font-size: 14px;
+}
+body {
+	color: #222;
+}
+a,
+.text {
+	color: #375EAB;
+	text-decoration: none;
+}
+a:hover,
+.text:hover {
+	text-decoration: underline !important;
+}
+
+h1,
+h2,
+h3,
+h4 {
+	margin: 15px 0;
+	padding: 0;
+	color: #375EAB;
+	font-weight: bold;
+}
+h1 {
+	font-size: 24px;
+}
+h2 {
+	font-size: 20px;
+	background: #E0EBF5;
+	padding: 2px 5px;
+}
+h3 {
+	font-size: 20px;
+}
+h3,
+h4 {
+	margin: 20px 5px;
+}
+h4 {
+	font-size: 16px;
+}
+
+dl {
+	margin: 20px;
+}
+dd {
+	margin: 2px 20px;
+}
+dl,
+dd {
+	font-size: 14px;
+}
+div#nav table td {
+	vertical-align: top;
+}
+
+div#heading {
+	float: left;
+	margin: 0 0 10px 0;
+	padding: 21px 0;
+	font-size: 20px;
+	font-weight: normal;
+}
+div#heading a {
+	color: #222;
+	text-decoration: none;
+}
+
+div#topbar {
+	background: #E0EBF5;
+	height: 64px;
+}
+
+body {
+	text-align: center;
+}
+div#page,
+div#topbar > .container {
+	clear: both;
+	text-align: left;
+	margin-left: auto;
+	margin-right: auto;
+	padding: 0 20px;
+	width: 900px;
+}
+div#page.wide,
+div#topbar > .wide {
+	width: auto;
+}
+
+div#footer {
+	color: #666;
+	font-size: 14px;
+	margin: 40px 0;
+}
+
+div#menu > a,
+div#menu > input {
+	padding: 10px;
+
+	text-decoration: none;
+	font-size: 16px;
+
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+}
+div#menu > a,
+div#menu > input {
+	border: 1px solid #375EAB;
+}
+div#menu > a {
+	color: white;
+	background: #375EAB;
+}
+
+div#menu {
+	float: right;
+	min-width: 590px;
+	padding: 10px 0;
+	text-align: right;
+}
+div#menu > a {
+	margin-right: 5px;
+	margin-bottom: 10px;
+
+	padding: 10px;
+}
+div#menu > input {
+	position: relative;
+	top: 1px;
+	width: 120px;
+	background: white;
+	color: #222;
+}
+div#menu > input.inactive {
+	color: #999;
+}
+
+.issue-title{
+	color: #000;
+	font-weight: bold;
+}
+.issue-meta {
+	color: #888;
+	font-size: 13px;
+}
+.issue-icon {
+	margin-right: 6px;
+	margin-top: 2px;
+}
+.issue-commit-icon {
+	margin-right: 8px;
+	margin-top: 0px;
+	vertical-align: top;
+}
+
+.issue-commits {
+	font-size: 13px;
+}
+
+.issue-closed .issue-title{
+	color: grey;
+	text-decoration:line-through;
+}
+
+div.list-entry {
+	margin-top: 12px;
+}
+div.list-entry-container {
+	width: 100%;
+	box-sizing: border-box;
+}
+div.list-entry-border {
+	border: 1px solid #ddd;
+	border-radius: 4px;
+}
+.list-entry-header {
+	background-color: #f8f8f8;
+	padding: 10px;
+	border-radius: 4px 4px 0 0;
+	border-bottom: 1px solid #eee;
+}
+div.list-entry-body {
+	padding: 10px;
+}
+
+div.multilist-entry:not(:nth-child(0n+2)) {
+	border: 0px solid #ddd;
+	border-top-width: 1px;
+}
+
+.list-entry-header nav a {
+	color: #767676;
+	text-decoration: none;
+}
+.list-entry-header nav .selected {
+	color: #000;
+	font-weight: bold;
+}

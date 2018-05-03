@@ -1,0 +1,57 @@
+{{define "root"}}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>devdashboard</title>
+  <link type="text/css" rel="stylesheet" href="/static/style.css">
+  <link type="text/css" rel="stylesheet" href="/static/timeline.css">
+</head>
+<body>
+
+<div id="topbar"><div class="container">
+
+  <form method="GET" action="#">
+  <!--TODO: integrate search-->
+  <div id="menu">
+  <a href="/release/">Releases</a>
+  <a href="#">Components</a>
+  <a href="#">Hello</a>
+  <a href="https://github.com/urld/devdashboard">About</a>
+  <input type="text" id="search" name="q" class="inactive" value="Search">
+  </div>
+  <div id="heading"><a href="/release/">Dev Dashboard</a></div>
+  </form>
+
+</div></div>
+
+<div id="page">
+{{template "page" .}}
+</div>
+
+<div id="footer">
+Disclaimer: devdashboard is still a work in progress, and not yet ready for production use.
+</div>
+
+</body>
+</html>
+{{end}}
+
+{{define "timeline"}}
+<ul class="timeline">
+<li class="timeline-active">
+  <object data="/static/octicons/beaker.svg" type="image/svg+xml" class="timeline-icon"></object>
+  <div>Development</div>
+</li>
+{{if .IsFrozen}}<li class="timeline-active">{{else}}<li>{{end}}
+  <object data="/static/octicons/tag.svg" type="image/svg+xml" class="timeline-icon"></object>
+  <div>Code Freeze</div>
+  <div>{{.FreezeDate | fmtDateTime}}</div>
+</li>
+{{if .IsReleased}}<li class="timeline-active">{{else}}<li>{{end}}
+  <object data="/static/octicons/globe.svg" type="image/svg+xml" class="timeline-icon"></object>
+  <div>Release</div>
+  <div>{{.ReleaseDate | fmtDateTime}}</div>
+</li>
+</ul>
+{{end}}
