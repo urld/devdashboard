@@ -1,4 +1,4 @@
-// Copyright (c) 2018, David Url
+// Copyright 2018 David Url.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -37,6 +38,7 @@ func initTemplates(basePath string, failOnErr bool) {
 		tmpl.Funcs(template.FuncMap{
 			"fmtDate":     fmtDate,
 			"fmtDateTime": fmtDateTime,
+			"fmtRelTime":  fmtRelTime,
 		})
 		tmpl, err := tmpl.ParseFiles(rootTmpl, contentTmpl)
 		if err != nil {
@@ -79,7 +81,7 @@ func watchTemplates(basePath string) {
 	}
 }
 
-func renderHtml(w io.Writer, name string, data interface{}) error {
+func renderHTML(w io.Writer, name string, data interface{}) error {
 	tmplLock.RLock()
 	tmpl, ok := tmplMap[name]
 	tmplLock.RUnlock()
@@ -94,5 +96,10 @@ func fmtDate(t time.Time) string {
 }
 
 func fmtDateTime(t time.Time) string {
-	return t.Format("2006-01-02 15:04")
+	//return t.Format("2006-01-02 15:04")
+	return t.Format(time.RFC1123Z)
+}
+
+func fmtRelTime(t time.Time) string {
+	return humanize.Time(t)
 }

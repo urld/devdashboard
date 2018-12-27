@@ -1,0 +1,146 @@
+// https://developers.google.com/protocol-buffers/docs/proto3
+syntax = "proto3";
+
+import "github.com/golang/protobuf/ptypes/timestamp/timestamp.proto";
+
+package devdashpb;
+
+message Mutation {
+  ProjectMutation project = 1;
+  ReleaseMutation release = 2;
+  IssueMutation issue = 3;
+
+  GitMutation git = 4;
+}
+
+message ProjectMutation {
+  string id = 1;
+
+  string name = 2;
+  string description = 3;
+
+  repeated TrackerMilestone milestones = 4;
+  repeated string deleted_milestones = 5;
+}
+
+message ReleaseMutation {
+  string id = 1;
+
+  string name = 2;
+  string description = 3;
+
+  google.protobuf.Timestamp freeze_date = 4;
+  google.protobuf.Timestamp release_date = 5;
+
+  bool closed = 6;
+
+  repeated TrackerMilestone milestones = 7;
+  repeated string deleted_milestones = 8;
+}
+
+message IssueMutation {
+  string project = 1;
+  string id = 2;  // unique across all repos
+  string issueKey = 3; // human readable
+
+  // not_exist is set true if the issue has been found to not exist.
+  // If true, the project/id/issueKey fields above must still be set.
+  // If a future issue mutation for the same number arrives without
+  // not_exist set, then the issue comes back to life.
+  bool not_exist = 4;
+
+
+  google.protobuf.Timestamp created = 5; // only needed on new issues
+  google.protobuf.Timestamp updated = 6; // only set on updated issue text
+
+  string title = 7; // issue title
+  string body = 8; // for new or updated issue text
+
+  TrackerUser owner = 9;
+  repeated TrackerUser assignees = 10;
+  repeated string deleted_assignees = 11; // IDs of users to delete from the assignee list
+
+  repeated TrackerMilestone milestones = 12;
+  repeated string deleted_milestones = 13; // IDs of milestones to delete from the milestone list
+
+  string status= 14;
+  bool closed = 15;
+
+  google.protobuf.Timestamp closed_at = 16;
+  TrackerUser closed_by = 17;
+
+  repeated TrackerLabel labels = 18;
+  repeated TrackerLabel deleted_labels = 19; // label IDs to delete from the label list
+
+}
+
+message TrackerLabel {
+  string name = 2;
+}
+
+message TrackerMilestone {
+  string id = 1; // required
+  string project = 2;
+
+  // Following only need to be non-zero on changes:
+  bool closed = 3;
+  string name = 4;
+  string description = 5;
+}
+
+message IssueCommentMutation {
+  int64 id = 1;
+  TrackerUser user = 2; // not present in edits later
+  string body = 3; // may not be present in edits later
+  google.protobuf.Timestamp created = 4; // not present in edits later
+  google.protobuf.Timestamp updated = 5;
+}
+
+message TrackerUser {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+}
+
+message GitMutation {
+  string repo = 1; // url of the git repo
+
+  GitCommit commit = 2;
+  repeated GitRef refs = 3;
+  repeated string deleted_refs = 4; // ref name to delete from the refs list
+}
+
+message GitCommit {
+  string sha1 = 1; // the full lowercase 40-hex-byte sha1 sum
+
+  // raw is the "git cat-file commit $sha1" output.
+  string raw = 2;
+
+  GitDiffTree diff_tree = 3;
+}
+
+// git diff-tree --numstat oldtree newtree
+message GitDiffTree {
+  repeated GitDiffTreeFile file = 1;
+}
+
+// GitDiffTreeFile represents one line of `git diff-tree --numstat` output.
+message GitDiffTreeFile {
+  string file = 1;
+  int64  added = 2;
+  int64  deleted = 3;
+  bool   binary = 4;
+}
+
+message GitRef {
+  // ref is the git ref name, such as:
+  //    HEAD
+  //    refs/heads/master
+  //    refs/changes/00/14700/1
+  //    refs/changes/00/14700/meta
+  //    refs/meta/config
+  string ref = 1;
+
+  // sha1 is the lowercase hex sha1
+  string sha1 = 2;
+}

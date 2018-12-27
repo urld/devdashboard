@@ -1,11 +1,10 @@
 {{define "page"}}
 <div class="container">
-
 <h1>Release: {{.Name}} </h1>
 {{template "timeline" .}}
-{{range .Components}}
+{{range .Milestones}}
   <div class="list-entry list-entry-border">
-  <div class="list-entry-header">{{.ComponentName}}: {{.Version}}</div>
+  <div class="list-entry-header">{{.Project.Name}}: {{.Name}}</div>
     {{range .Issues}}{{template "issue" .}}{{end}}
   </div>
 {{end}}
@@ -14,24 +13,30 @@
 {{end}}
 
 {{define "issue"}}
-{{if .IsClosed}}
-<div class="list-entry-body multilist-entry issue-opened"><div style="display: flex;">
-  <span><object data="/static/octicons/issue-opened.svg" type="image/svg+xml" class="issue-icon"></object></span>
-{{else}}
+{{if .Closed}}
 <div class="list-entry-body multilist-entry issue-closed"><div style="display: flex;">
   <span><object data="/static/octicons/issue-closed.svg" type="image/svg+xml" class="issue-icon"></object></span>
+{{else}}
+<div class="list-entry-body multilist-entry issue-opened"><div style="display: flex;">
+  <span><object data="/static/octicons/issue-opened.svg" type="image/svg+xml" class="issue-icon"></object></span>
 {{end}}
   <div style="flex-grow: 1;">
     <div><a class="issue-title" href="{{.URL}}">{{.Title}}</a></div>
-    <div class="issue-meta" style="margin-top: 2px;">{{.Id}}, updated <abbr title="May 3, 2018, 6:01 PM UTC">1 day ago</abbr></div>
+{{if .Closed}}
+    <div class="issue-meta" style="margin-top: 2px;">{{.IssueKey}}, closed <abbr title="{{.ClosedAt | fmtDateTime}}">{{.ClosedAt | fmtRelTime}}</abbr></div>
+{{else}}
+    <div class="issue-meta" style="margin-top: 2px;">{{.IssueKey}}, updated <abbr title="{{.Updated | fmtDateTime}}">{{.Updated | fmtRelTime}}</abbr></div>
+{{end}}
   </div>
   <span class="issue-commits">
     <div><object data="/static/octicons/git-commit.svg" type="image/svg+xml" class="issue-commit-icon"></object>{{len .Commits}} commits</div>
+    {{- /* TODO: implement merge detection
     {{if .HasUnmergedCommits}}
     <div><object data="/static/octicons/git-pull-request.svg" type="image/svg+xml" class="issue-commit-icon"></object>not merged</div>
     {{else}}
     <div><object data="/static/octicons/git-pull-request.svg" type="image/svg+xml" class="issue-commit-icon"></object>merged</div>
     {{end}}
+    */ -}}
   </span>
 </div></div>
 {{end}}
