@@ -5,11 +5,8 @@
 package devdashboard
 
 import (
-	"log"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/urld/devdashboard/devdashpb"
 )
 
@@ -46,21 +43,6 @@ func (r *Release) IsFrozen() bool {
 func (r *Release) IsReleased() bool {
 	t := time.Now()
 	return t.After(r.ReleaseDate)
-}
-
-func (c *Corpus) getOrCreateProject(id string) *Project {
-	p, ok := c.Projects[id]
-	if !ok {
-		// new project
-		p = &Project{
-			ID:         id,
-			Issues:     make(map[string]*Issue),
-			Milestones: make(map[string]*Milestone),
-		}
-	}
-	c.Projects[id] = p
-	return p
-
 }
 
 type Milestone struct {
@@ -102,10 +84,9 @@ type Issue struct {
 	ClosedAt time.Time
 	ClosedBy *IssueTrackerUser
 
-	Labels  map[string]bool
+	Labels  map[string]struct{}
 	Commits map[string]*GitCommit
 
-	//TODO:
 	URL string
 }
 
@@ -113,6 +94,20 @@ type IssueTrackerUser struct {
 	ID    string
 	Name  string
 	Email string
+}
+
+func (c *Corpus) getOrCreateProject(id string) *Project {
+	p, ok := c.Projects[id]
+	if !ok {
+		// new project
+		p = &Project{
+			ID:         id,
+			Issues:     make(map[string]*Issue),
+			Milestones: make(map[string]*Milestone),
+		}
+	}
+	c.Projects[id] = p
+	return p
 }
 
 func (c *Corpus) processProjectMutation(pm *devdashpb.ProjectMutation) {
@@ -159,7 +154,9 @@ func (c *Corpus) processReleaseMutation(rm *devdashpb.ReleaseMutation) {
 	if rm.ReleaseDate != nil {
 		r.ReleaseDate = pbTime(rm.ReleaseDate)
 	}
-	r.Closed = rm.Closed
+	if rm.Closed != nil {
+		r.Closed = rm.Closed.Val
+	}
 	for _, mm := range rm.Milestones {
 		m := c.processMilestoneMutation(mm)
 		if r.Milestones == nil {
@@ -233,7 +230,9 @@ func (c *Corpus) processIssueMutation(im *devdashpb.IssueMutation) {
 	if im.Status != "" {
 		i.Status = im.Status
 	}
-	i.Closed = im.Closed
+	if im.Closed != nil {
+		i.Closed = im.Closed.Val
+	}
 	if im.ClosedAt != nil {
 		i.ClosedAt = pbTime(im.ClosedAt)
 	}
@@ -242,12 +241,15 @@ func (c *Corpus) processIssueMutation(im *devdashpb.IssueMutation) {
 	}
 	for _, l := range im.Labels {
 		if i.Labels == nil {
-			i.Labels = make(map[string]bool)
+			i.Labels = make(map[string]struct{})
 		}
-		i.Labels[l.Name] = true
+		i.Labels[l.Name] = struct{}{}
 	}
 	for _, l := range im.DeletedLabels {
-		delete(i.Labels, l.Name)
+		delete(i.Labels, l)
+	}
+	if im.Url != "" {
+		i.URL = im.Url
 	}
 }
 
@@ -296,14 +298,279 @@ func (c *Corpus) processMilestoneMutation(mm *devdashpb.TrackerMilestone) *Miles
 	if mm.Description != "" {
 		m.Description = mm.Description
 	}
-	m.Closed = mm.Closed
+	if mm.Closed != nil {
+		m.Closed = mm.Closed.Val
+	}
 	return m
 }
 
-func pbTime(ts *timestamp.Timestamp) time.Time {
-	t, err := ptypes.Timestamp(ts)
-	if err != nil {
-		log.Printf("could not convert protobuf timestamp:  %v", err)
+var emptyProject = &Project{}
+
+func (a *Project) GenMutationDiff(b *Project) *devdashpb.ProjectMutation {
+	var ret *devdashpb.ProjectMutation // lazily initialized by diff
+	diff := func() *devdashpb.ProjectMutation {
+		if ret == nil {
+			ret = &devdashpb.ProjectMutation{Id: b.ID}
+		}
+		return ret
 	}
-	return t
+	if a == nil {
+		a = emptyProject
+	}
+	if a.Name != b.Name {
+		diff().Name = b.Name
+	}
+	if a.Description != b.Description {
+		diff().Description = b.Description
+	}
+	milestones, deletedMilestones := genMilestoneDiffs(a.Milestones, b.Milestones)
+	diff().Milestones = milestones
+	diff().DeletedMilestones = deletedMilestones
+	return ret
+}
+
+var emptyRelease = &Release{}
+
+func (a *Release) GenMutationDiff(b *Release) *devdashpb.ReleaseMutation {
+	var ret *devdashpb.ReleaseMutation
+	diff := func() *devdashpb.ReleaseMutation {
+		if ret == nil {
+			ret = &devdashpb.ReleaseMutation{Id: b.ID}
+		}
+		return ret
+	}
+	if a == nil {
+		a = emptyRelease
+	}
+	if a.Name != b.Name {
+		diff().Name = b.Name
+	}
+	if a.Description != b.Description {
+		diff().Description = b.Description
+	}
+	if a.FreezeDate != b.FreezeDate {
+		diff().FreezeDate = pbTimestamp(b.FreezeDate)
+	}
+	if a.ReleaseDate != b.ReleaseDate {
+		diff().ReleaseDate = pbTimestamp(b.ReleaseDate)
+	}
+	milestones, deletedMilestones := genMilestoneDiffs(a.Milestones, b.Milestones)
+	diff().Milestones = milestones
+	diff().DeletedMilestones = deletedMilestones
+	if a.Closed != b.Closed {
+		diff().Closed = pbBool(b.Closed)
+	}
+	return ret
+}
+
+func genMilestoneDiffs(a, b map[string]*Milestone) (milestones []*devdashpb.TrackerMilestone, deletedMilestones []string) {
+	processed := newSet()
+	for id, ma := range a {
+		mb, ok := b[id]
+		if ok {
+			milestoneDiff := ma.GenMutationDiff(mb)
+			if milestoneDiff != nil {
+				milestones = append(milestones, milestoneDiff)
+			}
+		} else {
+			deletedMilestones = append(deletedMilestones, id)
+		}
+		processed.put(id)
+	}
+	for id, mb := range b {
+		if processed.has(id) {
+			continue
+		}
+		var ma Milestone
+		milestoneDiff := ma.GenMutationDiff(mb)
+		milestones = append(milestones, milestoneDiff)
+	}
+	return
+}
+
+var emptyMilestone = &Milestone{p: &Project{}}
+
+func (a *Milestone) GenMutationDiff(b *Milestone) *devdashpb.TrackerMilestone {
+	var ret *devdashpb.TrackerMilestone // lazily initialized by diff
+	diff := func() *devdashpb.TrackerMilestone {
+		if ret == nil {
+			ret = &devdashpb.TrackerMilestone{Id: b.ID}
+		}
+		return ret
+	}
+	if a == nil {
+		a = emptyMilestone
+	}
+	if a.Name != b.Name {
+		diff().Name = b.Name
+	}
+	if a.Description != b.Description {
+		diff().Description = b.Description
+	}
+	if a.p.ID != b.p.ID {
+		diff().Project = b.p.ID
+	}
+	if a.Closed != b.Closed {
+		diff().Closed = pbBool(b.Closed)
+	}
+
+	return ret
+}
+
+func genIssueDiffs(a, b map[string]*Issue) (issues []*devdashpb.IssueMutation, deletedIssues []string) {
+	processed := newSet()
+	for id, ia := range a {
+		ib, ok := b[id]
+		if ok {
+			issueDiff := ia.GenMutationDiff(ib)
+			if issueDiff != nil {
+				issues = append(issues, issueDiff)
+			}
+		} else {
+			deletedIssues = append(deletedIssues, id)
+		}
+		processed.put(id)
+	}
+	for id, ib := range b {
+		if processed.has(id) {
+			continue
+		}
+		var ia *Issue
+		issueDiff := ia.GenMutationDiff(ib)
+		issues = append(issues, issueDiff)
+	}
+	return
+}
+
+var emptyIssue = &Issue{}
+
+func (a *Issue) GenMutationDiff(b *Issue) *devdashpb.IssueMutation {
+	var ret *devdashpb.IssueMutation
+	diff := func() *devdashpb.IssueMutation {
+		if ret == nil {
+			ret = &devdashpb.IssueMutation{Id: b.ID}
+		}
+		return ret
+	}
+	if a == nil {
+		a = emptyIssue
+	}
+	if a.p.ID != b.p.ID {
+		diff().Project = b.p.ID
+	}
+	if a.Created != b.Created {
+		diff().Created = pbTimestamp(b.Created)
+	}
+	if a.Updated != b.Updated {
+		diff().Updated = pbTimestamp(b.Updated)
+	}
+	if a.IssueKey != b.IssueKey {
+		diff().IssueKey = b.IssueKey
+	}
+	if a.Title != b.Title {
+		diff().Title = b.Title
+	}
+	if a.Body != b.Body {
+		diff().Body = b.Body
+	}
+	if a.Owner != b.Owner {
+		diff().Owner = a.Owner.GenMutationDiff(b.Owner)
+
+	}
+	if a.Status != b.Status {
+		diff().Status = b.Status
+	}
+	if a.Closed != b.Closed {
+		diff().Closed = pbBool(b.Closed)
+	}
+	if a.ClosedAt != b.ClosedAt {
+		diff().ClosedAt = pbTimestamp(b.ClosedAt)
+	}
+	if *a.ClosedBy != *b.ClosedBy {
+		diff().ClosedBy = a.ClosedBy.GenMutationDiff(b.ClosedBy)
+	}
+	if a.URL != b.URL {
+		diff().Url = b.URL
+	}
+
+	assignees, deletedAssignees := genTrackerUserDiffs(a.Assignees, b.Assignees)
+	diff().Assignees = assignees
+	diff().DeletedAssignees = deletedAssignees
+
+	milestones, deletedMilestones := genMilestoneDiffs(a.Milestones, b.Milestones)
+	diff().Milestones = milestones
+	diff().DeletedMilestones = deletedMilestones
+
+	labels, deletedLabels := genTrackerLabelDiffs(a.Labels, b.Labels)
+	diff().Labels = labels
+	diff().DeletedLabels = deletedLabels
+
+	// TODO commits
+
+	return ret
+}
+
+var emptyIssueTrackerUser = &IssueTrackerUser{}
+
+func (a *IssueTrackerUser) GenMutationDiff(b *IssueTrackerUser) *devdashpb.TrackerUser {
+	var ret *devdashpb.TrackerUser
+	diff := func() *devdashpb.TrackerUser {
+		if ret == nil {
+			ret = &devdashpb.TrackerUser{Id: b.ID}
+		}
+		return ret
+	}
+	if a == nil {
+		a = emptyIssueTrackerUser
+	}
+	if a.Name != b.Name {
+		diff().Name = b.Name
+	}
+	if a.Email != b.Email {
+		diff().Email = b.Email
+	}
+	return ret
+}
+
+func genTrackerUserDiffs(a, b map[string]*IssueTrackerUser) (users []*devdashpb.TrackerUser, deletedUsers []string) {
+	processed := newSet()
+	for id, ua := range a {
+		ub, ok := b[id]
+		if ok {
+			userDiff := ua.GenMutationDiff(ub)
+			if userDiff != nil {
+				users = append(users, userDiff)
+			}
+		} else {
+			deletedUsers = append(deletedUsers, id)
+		}
+		processed.put(id)
+	}
+	for id, ub := range b {
+		if processed.has(id) {
+			continue
+		}
+		var ua IssueTrackerUser
+		userDiff := ua.GenMutationDiff(ub)
+		users = append(users, userDiff)
+	}
+	return
+}
+
+func genTrackerLabelDiffs(a, b map[string]struct{}) (labels []*devdashpb.TrackerLabel, deletedLabels []string) {
+	processed := newSet()
+	for id := range a {
+		_, ok := b[id]
+		if !ok {
+			deletedLabels = append(deletedLabels, id)
+		}
+		processed.put(id)
+	}
+	for id := range b {
+		if processed.has(id) {
+			continue
+		}
+		labels = append(labels, &devdashpb.TrackerLabel{Name: id})
+	}
+	return
 }

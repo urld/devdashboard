@@ -85,7 +85,7 @@ func main() {
 			Title:     "Setup project",
 			Body:      "* create git repo\n* write readme\n* configure ci build",
 			Status:    "Done",
-			Closed:    true,
+			Closed:    boolChange(true),
 			ClosedAt:  pbTimestamp("2018-12-27T04:13"),
 			ClosedBy:  &devdashpb.TrackerUser{Id: "urld", Name: "David Url", Email: "david@urld.io"},
 			Created:   pbTimestamp("2018-12-10T14:13"),
@@ -154,7 +154,7 @@ func main() {
 	log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:         "i1",
-			Closed:     true,
+			Closed:     boolChange(true),
 			Milestones: []*devdashpb.TrackerMilestone{{Id: "abc201902"}},
 		},
 	})
@@ -220,4 +220,8 @@ func log(m *devdashpb.Mutation) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func boolChange(val bool) *devdashpb.BoolChange {
+	return &devdashpb.BoolChange{Val: val}
 }

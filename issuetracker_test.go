@@ -42,7 +42,7 @@ func TestSepratateIssueMutations(t *testing.T) {
 	l := newLogger()
 	c := &Corpus{}
 
-	l.Log(&devdashpb.Mutation{
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:        "i1",
 			Project:   "ABC",
@@ -50,7 +50,7 @@ func TestSepratateIssueMutations(t *testing.T) {
 			Title:     "Setup project",
 			Body:      "* create git repo\n* write readme\n* configure ci build",
 			Status:    "Done",
-			Closed:    true,
+			Closed:    pbBool(true),
 			ClosedAt:  ptypes.TimestampNow(),
 			ClosedBy:  &devdashpb.TrackerUser{Id: "urld", Name: "David Url", Email: "david@urld.io"},
 			Created:   ptypes.TimestampNow(),
@@ -58,8 +58,8 @@ func TestSepratateIssueMutations(t *testing.T) {
 			Assignees: []*devdashpb.TrackerUser{{Id: "urld", Name: "David Url", Email: "david@urld.io"}},
 			Owner:     &devdashpb.TrackerUser{Id: "urld", Name: "David Url", Email: "david@urld.io"},
 		},
-	})
-	l.Log(&devdashpb.Mutation{
+	}))
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:        "i2",
 			Project:   "ABC",
@@ -67,16 +67,13 @@ func TestSepratateIssueMutations(t *testing.T) {
 			Title:     "service specs",
 			Body:      "REST service specification",
 			Status:    "New",
-			Closed:    false,
-			ClosedAt:  ptypes.TimestampNow(),
-			ClosedBy:  &devdashpb.TrackerUser{Id: "urld", Name: "David Url", Email: "david@urld.io"},
 			Created:   ptypes.TimestampNow(),
 			Updated:   ptypes.TimestampNow(),
 			Assignees: []*devdashpb.TrackerUser{{Id: "urld", Name: "David Url", Email: "david@urld.io"}},
 			Owner:     &devdashpb.TrackerUser{Id: "urld", Name: "David Url", Email: "david@urld.io"},
 		},
-	})
-	l.Log(&devdashpb.Mutation{
+	}))
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:        "i3",
 			Project:   "DEF",
@@ -84,18 +81,15 @@ func TestSepratateIssueMutations(t *testing.T) {
 			Title:     "client prototype",
 			Body:      "prototype of a http client for service x",
 			Status:    "In Progress",
-			Closed:    false,
-			ClosedAt:  ptypes.TimestampNow(),
-			ClosedBy:  &devdashpb.TrackerUser{Id: "urld", Name: "David Url", Email: "david@urld.io"},
 			Created:   ptypes.TimestampNow(),
 			Updated:   ptypes.TimestampNow(),
 			Assignees: []*devdashpb.TrackerUser{{Id: "urld", Name: "David Url", Email: "david@urld.io"}},
 			Owner:     &devdashpb.TrackerUser{Id: "urld", Name: "David Url", Email: "david@urld.io"},
 		},
-	})
+	}))
 
 	l.end()
-	c.Initialize(context.Background(), l)
+	checkErr(t, c.Initialize(context.Background(), l))
 
 	abc, ok := c.Projects["ABC"]
 	if !ok {
@@ -133,7 +127,7 @@ func TestIssueMutation(t *testing.T) {
 	l := newLogger()
 	c := &Corpus{}
 
-	l.Log(&devdashpb.Mutation{
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:       "i1",
 			Project:  "ABC",
@@ -144,8 +138,8 @@ func TestIssueMutation(t *testing.T) {
 				{Id: "ass2", Name: "Assignee 2", Email: "ass2@example.com"},
 			},
 		},
-	})
-	l.Log(&devdashpb.Mutation{
+	}))
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:               "i1",
 			Project:          "DEF",
@@ -154,10 +148,10 @@ func TestIssueMutation(t *testing.T) {
 			Assignees:        []*devdashpb.TrackerUser{{Id: "ass2", Name: "Assignee Two"}},
 			DeletedAssignees: []string{"ass1"},
 		},
-	})
+	}))
 
 	l.end()
-	c.Initialize(context.Background(), l)
+	checkErr(t, c.Initialize(context.Background(), l))
 
 	i1, ok := c.Issues["i1"]
 	if !ok {
@@ -178,7 +172,7 @@ func TestMilestoneMutation(t *testing.T) {
 	l := newLogger()
 	c := &Corpus{}
 
-	l.Log(&devdashpb.Mutation{
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Project: &devdashpb.ProjectMutation{
 			Id: "ABC",
 			Milestones: []*devdashpb.TrackerMilestone{
@@ -186,18 +180,18 @@ func TestMilestoneMutation(t *testing.T) {
 				{Id: "m2", Project: "ABC", Name: "1.1.0", Description: "Release 2019.03"},
 			},
 		},
-	})
-	l.Log(&devdashpb.Mutation{
+	}))
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:         "i1",
 			Project:    "ABC",
 			IssueKey:   "ABC-1",
 			Milestones: []*devdashpb.TrackerMilestone{{Id: "m1"}, {Id: "m2"}},
 		},
-	})
+	}))
 
 	l.end()
-	c.Initialize(context.Background(), l)
+	checkErr(t, c.Initialize(context.Background(), l))
 
 	i1, ok := c.Issues["i1"]
 	if !ok {
@@ -229,23 +223,23 @@ func TestMilestoneMutation(t *testing.T) {
 		t.Error("Milestone m2 should have issue i1")
 	}
 
-	l.Log(&devdashpb.Mutation{
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:                "i1",
 			Project:           "ABC",
 			IssueKey:          "ABC-1",
 			DeletedMilestones: []string{"m2"},
 		},
-	})
-	l.Log(&devdashpb.Mutation{
+	}))
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Project: &devdashpb.ProjectMutation{
 			Id:         "ABC",
-			Milestones: []*devdashpb.TrackerMilestone{{Id: "m1", Closed: true}},
+			Milestones: []*devdashpb.TrackerMilestone{{Id: "m1", Closed: pbBool(true)}},
 		},
-	})
+	}))
 
 	l.end()
-	c.Update(context.Background())
+	checkErr(t, c.Update(context.Background()))
 
 	_, ok = i1.Milestones["m2"]
 	if ok {
@@ -260,15 +254,15 @@ func TestMilestoneMutation(t *testing.T) {
 		t.Error("Milestone m1 should be closed")
 	}
 
-	l.Log(&devdashpb.Mutation{
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Project: &devdashpb.ProjectMutation{
 			Id:                "ABC",
 			DeletedMilestones: []string{"m1"},
 		},
-	})
+	}))
 
 	l.end()
-	c.Update(context.Background())
+	checkErr(t, c.Update(context.Background()))
 
 	_, ok = c.Milestones["m1"]
 	if ok {
@@ -285,7 +279,7 @@ func TestReleaseMutation(t *testing.T) {
 	l := newLogger()
 	c := &Corpus{}
 
-	l.Log(&devdashpb.Mutation{
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Project: &devdashpb.ProjectMutation{
 			Id: "ABC",
 			Milestones: []*devdashpb.TrackerMilestone{
@@ -293,8 +287,8 @@ func TestReleaseMutation(t *testing.T) {
 				{Id: "m2", Project: "ABC", Name: "1.1.0", Description: "Release 2019.03"},
 			},
 		},
-	})
-	l.Log(&devdashpb.Mutation{
+	}))
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Project: &devdashpb.ProjectMutation{
 			Id: "DEF",
 			Milestones: []*devdashpb.TrackerMilestone{
@@ -302,34 +296,34 @@ func TestReleaseMutation(t *testing.T) {
 				{Id: "m4", Project: "ABC", Name: "3.1.0", Description: "Release 2019.03"},
 			},
 		},
-	})
-	l.Log(&devdashpb.Mutation{
+	}))
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:         "i1",
 			Project:    "ABC",
 			IssueKey:   "ABC-1",
 			Milestones: []*devdashpb.TrackerMilestone{{Id: "m1"}},
 		},
-	})
-	l.Log(&devdashpb.Mutation{
+	}))
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Issue: &devdashpb.IssueMutation{
 			Id:         "i2",
 			Project:    "DEF",
 			IssueKey:   "DEF-1",
 			Milestones: []*devdashpb.TrackerMilestone{{Id: "m3"}},
 		},
-	})
-	l.Log(&devdashpb.Mutation{
+	}))
+	checkErr(t, l.Log(&devdashpb.Mutation{
 		Release: &devdashpb.ReleaseMutation{
 			Id:          "r1",
 			Name:        "Release 2019.02",
 			ReleaseDate: ptypes.TimestampNow(),
 			Milestones:  []*devdashpb.TrackerMilestone{{Id: "m1"}, {Id: "m2"}},
 		},
-	})
+	}))
 
 	l.end()
-	c.Initialize(context.Background(), l)
+	checkErr(t, c.Initialize(context.Background(), l))
 
 	r1, ok := c.Releases["r1"]
 	if !ok {
@@ -353,4 +347,10 @@ func TestReleaseMutation(t *testing.T) {
 		t.Error("Release r1 should have milestone m2.")
 	}
 
+}
+
+func checkErr(t *testing.T, err error) {
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
 }

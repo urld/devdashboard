@@ -81,7 +81,7 @@ func (d *DiskMutationLogger) ForeachFile(fn func(fullPath string, fi os.FileInfo
 }
 
 func (d *DiskMutationLogger) GetMutations(ctx context.Context) <-chan MutationStreamEvent {
-	ch := make(chan MutationStreamEvent)
+	ch := make(chan MutationStreamEvent, 50)
 	go func() {
 		err := d.sendMutations(ctx, ch)
 		final := MutationStreamEvent{Err: err}

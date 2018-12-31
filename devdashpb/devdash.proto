@@ -32,7 +32,7 @@ message ReleaseMutation {
   google.protobuf.Timestamp freeze_date = 4;
   google.protobuf.Timestamp release_date = 5;
 
-  bool closed = 6;
+  BoolChange closed = 6;
 
   repeated TrackerMilestone milestones = 7;
   repeated string deleted_milestones = 8;
@@ -64,14 +64,15 @@ message IssueMutation {
   repeated string deleted_milestones = 13; // IDs of milestones to delete from the milestone list
 
   string status= 14;
-  bool closed = 15;
+  BoolChange closed = 15;
 
   google.protobuf.Timestamp closed_at = 16;
   TrackerUser closed_by = 17;
 
   repeated TrackerLabel labels = 18;
-  repeated TrackerLabel deleted_labels = 19; // label IDs to delete from the label list
+  repeated string deleted_labels = 19; // label IDs to delete from the label list
 
+  string url = 20;
 }
 
 message TrackerLabel {
@@ -83,7 +84,7 @@ message TrackerMilestone {
   string project = 2;
 
   // Following only need to be non-zero on changes:
-  bool closed = 3;
+  BoolChange closed = 3;
   string name = 4;
   string description = 5;
 }
@@ -143,4 +144,8 @@ message GitRef {
 
   // sha1 is the lowercase hex sha1
   string sha1 = 2;
+}
+
+message BoolChange {
+  bool val = 1;
 }
